@@ -1,344 +1,130 @@
-# Accordion Integration Guide
+# Guide d’intégration de l’accordeon
 
-## Architecture Overview
+Ce document explique comment utiliser correctement le composant `ui-accordion` partagé dans un futur feature. Il décrit l’architecture, les entrées / sorties de chaque composant, et montre comment personnaliser en particulier l’en‑tête et le contenu.
 
-The `ui-accordion` is a **wrapper around Angular Material's MatExpansionPanel**, not a custom component from scratch. This gives us:
+## Architecture générale
 
-- **Robustness & A11y**: Keyboard nav, ARIA attributes, animations all handled by Material  
-- **Stability**: Maintained by Google, proven in production  
-- **Simple API**: Our wrapper exposes a clean input/output interface  
-- **Isolation**: Features customize via inputs, never touch Material directly
-
-### Component Structure
+Le composant est en fait une **double couche de wrapper** autour des composants Angular Material :
 
 ```
-UiAccordionComponent (Container)
+UiAccordionComponent (wrappe MatAccordion)
     ↓
-    @ContentChildren detects children
+    gère le mode ('single' ou 'multiple') et ferme automatiquement les autres éléments en mode single
     ↓
-    Enforces mode: single/multiple
+UiAccordionItemComponent (wrappe MatExpansionPanel)
     ↓
-    UiAccordionItemComponent (Item wrapper layer)
-        ↓
-        MatExpansionPanel (Material – animations, state, a11y)
+    MatExpansionPanel (gestion d’animations, accessibilité, état)
 ```
 
----
+- `UiAccordionComponent` dispose les items et impose le comportement `single/multiple`.
+- `UiAccordionItemComponent` fournit une interface plus simple et des entrées pour la sélection, le template d’en‑tête, etc.
 
-## UiAccordionItemComponent: All Inputs & Outputs
+## Entrées de `UiAccordionComponent`
 
-Here are **all the inputs** you can pass to each `<ui-accordion-item>`:
+| Propriété | Type | Valeur par défaut | Rôle |
+|-----------|------|-------------------|------|
+| `mode` | `'single'` ou `'multiple'` | `'multiple'` | Un seul item ouvert ou plusieurs |
+| `variant` | `'default'`/`'bordered'`/`'elevated'` | `'default'` | Apparence visuelle |
+| `ariaLabel` | string/null | null | Label accessible pour le conteneur |
 
-| Input | Type | Purpose | Example |
-|-------|------|---------|---------|
-| `header` | string (optional) | Simple text header | `header="Documents"` |
-| `headerTemplate` | TemplateRef | Custom header via ng-template | `[headerTemplate]="myHeader"` |
-| `headerContext` | any | Data passed to headerTemplate | `[headerContext]="{ icon, title }"` |
-| `isSelected` | boolean | Adds `.ui-accordion-item__header--selected` CSS class | `[isSelected]="true"` |
-| `disabled` | boolean | Greys out, prevents interaction | `[disabled]="false"` |
-| `opened` | boolean | Item starts expanded | `[opened]="true"` |
-| `ariaLabel` | string | Accessibility label for screen readers | `[ariaLabel]="'Documents panel'"` |
+Exemple :
+```html
+<ui-accordion [mode]="'single'" [variant]="'bordered'" ariaLabel="Sections">
+  <!-- items -->
+</ui-accordion>
+```
 
-| Output | Emits |
-|--------|-------|
-| `openedChange` | `'expanded'` or `'collapsed'` when user toggles |
+## Entrées et sorties de `UiAccordionItemComponent`
 
----
+| Input | Type | Usage | Exemple |
+|-------|------|-------|---------|
+| `header` | string | en‑tête simple | `header="Documents"` |
+| `headerTemplate` | TemplateRef | template personnalisé | `[headerTemplate]="tpl"` |
+| `headerContext` | any | contexte passé au template | `[headerContext]="{name:'foo'}"` |
+| `isSelected` | bool | ajoute classe `.ui-accordion-item__header--selected` | `[isSelected]="true"` |
+| `disabled` | bool | désactive l’item | `[disabled]="true"` |
+| `opened` | bool | item ouvert au départ | `[opened]="true"` |
+| `ariaLabel` | string/null | label pour lecteur d’écran | `[ariaLabel]="'Mon panneau'"` |
 
-## Integration: Step by Step
+⚠️ **Output** :
+`(openedChange)` émet `'expanded'` ou `'collapsed'` quand l’usager ouvre/ferme.
 
-### 1. Import from public index
+## Étapes d’intégration
 
+1. **Importer** depuis l’index public, pas depuis les sous-dossiers :
 ```ts
-import { UiAccordionComponent, UiAccordionItemComponent } 
-  from 'app/shared/ui/ui-accordion';
-
-@Component({
-  imports: [
-    CommonModule,
-    UiAccordionComponent,
-    UiAccordionItemComponent,
-  ]
-})
-export class MyContainer { }
+import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui-accordion';
 ```
-
-**Always** use the index, never `.../accordion/` or `.../accordion-item/` directly.
-
-### 2. Container manages selection state
-
-Selection logic lives in your **container**, not in the accordion:
-
-```ts
-export class MailboxContainer {
-  // Signal controls which item is selected
-  selection = signal<{ section: boolean; mailboxId: number | null }>({ 
-    section: true,  // Section "Mes courriers" is selected by default
-    mailboxId: null // No mailbox selected
-  });
-
-  selectSection() {
-    this.selection.set({ section: true, mailboxId: null });
-    this.router.navigate(['/mailboxes']);
-  }
-
-  selectMailbox(id: number) {
-    this.selection.set({ section: false, mailboxId: id });
-    this.router.navigate(['/mailboxes', id]);
-  }
-}
-```
-
-The container is responsible for:
-- Managing the selection state
-- Binding `isSelected` to each item
-- Responding to clicks `(openedChange)`
-
-### 3. Basic template: simple header + content
-
+2. Ajouter ces deux composants à l’array `imports` du composant conteneur.
+3. Gérer l’état de sélection **dans le conteneur** (signal, store, route, etc.).
+4. Lien HTML de base :
 ```html
 <ui-accordion [mode]="'single'" [variant]="'bordered'">
-  
-  <!-- Item with simple string header -->
-  <ui-accordion-item 
-    header="My Simple Header"
-    [isSelected]="selection().section"
-    (openedChange)="selectSection()">
-    <p>Content projections here</p>
+  <ui-accordion-item header="Titre" [isSelected]="selection().section">
+    Contenu projeté
   </ui-accordion-item>
-
 </ui-accordion>
 ```
-
----
-
-## How to customize: Header Template + Context
-
-### Simple approach: `header` input
-
+5. Pour un en‑tête personnalisé utilisez `headerTemplate` / `headerContext` :
 ```html
-<ui-accordion-item header="Documents">
-  <!-- content -->
+<ui-accordion-item
+  [headerTemplate]="monHeader"
+  [headerContext]="{label:'Mes courriers'}">
+  …
 </ui-accordion-item>
-```
 
-### Advanced: Custom header with `headerTemplate` + `headerContext`
-
-**In your TypeScript:**
-
-```ts
-export class MyContainer {
-  faEnvelope = faEnvelopeOpen; // FontAwesome icon
-  
-  headerData = signal({ 
-    icon: this.faEnvelope, 
-    title: 'Mes courriers',
-    unreadCount: 5
-  });
-}
-```
-
-**In your template:**
-
-```html
-<ui-accordion [mode]="'single'">
-  
-  <ui-accordion-item 
-    [headerTemplate]="customHeader"
-    [headerContext]="headerData()"
-    [isSelected]="selection().section"
-    (openedChange)="selectSection()">
-    <p>Section content here</p>
-  </ui-accordion-item>
-
-</ui-accordion>
-
-<!-- Define the custom header template -->
-<ng-template #customHeader let-data>
-  <!-- let-data = receives headerContext() as $implicit -->
-  <fa-icon [icon]="data.icon" class="mr-2"></fa-icon>
-  <span class="font-bold">{{ data.title }}</span>
-  <span class="badge ml-auto">{{ data.unreadCount }}</span>
+<ng-template #monHeader let-data>
+  <span>{{data.label}}</span>
 </ng-template>
 ```
+6. Le contenu placé entre les balises `<ui-accordion-item>` est automatiquement projeté (`<ng-content>`).
 
-**Key**: `let-data` in ng-template receives `headerContext()` as the implicit variable.
+## Styliser l’en‑tête sélectionné
 
----
-
-## Content Projection (inside accordion-item)
-
-Everything between `<ui-accordion-item>` tags is automatically projected inside the item's body:
-
-```html
-<ui-accordion-item header="Users">
-  
-  <!-- All of this is projected via <ng-content> -->
-  <ul>
-    <li>Alice</li>
-    <li>Bob</li>
-  </ul>
-  <button (click)="addUser()">Add User</button>
-
-</ui-accordion-item>
-```
-
-You can project:
-- HTML elements
-- Components
-- Structural directives (`*ngIf`, `*ngFor`)
-- Ng-templates
-
----
-
-## Styling the selected state
-
-When `isSelected="true"`, Material adds the CSS class `.ui-accordion-item__header--selected` to the header.
-
-**Override it with `::ng-deep`:**
-
+Quand `isSelected` est vrai, la classe `.ui-accordion-item__header--selected` est ajoutée.
+Pour la modifier :
 ```scss
-// in your container.scss
-::ng-deep .ui-accordion .mat-expansion-panel-header.ui-accordion-item__header--selected {
+::ng-deep .ui-accordion .mat-expansion-panel-header
+      .ui-accordion-item__header--selected {
   background-color: $color-selection-bg-list !important;
-  border-left: 4px solid $color-primary !important;
-  font-weight: 600 !important;
 }
 ```
+`::ng-deep` est nécessaire pour traverser l’encapsulation de Material.
 
-**Why `::ng-deep`**: Material's styles are view-encapsulated; you must pierce the boundary.  
-**Why `!important`**: Material's specificity is high; force your styles to win.
+## Modes
 
----
+- `mode="single"` : un seul item ouvert à la fois (ouverture ferme les autres).
+- `mode="multiple"` : les items s’ouvrent/ferment indépendamment.
 
-## Real-world Example: Mailbox with Custom Headers
+## Erreurs fréquentes
 
-**TypeScript:**
+- Importer depuis `.../accordion/accordion.component.ts` au lieu de l’index.
+- Tenter de modifier `isSelected` à l’intérieur de l’item.
+- Oublier `::ng-deep` pour les styles.
+- Mélanger `header` et `headerTemplate`.
+- Ne pas ajouter les composants dans `imports` → « élément inconnu ».
 
-```ts
-@Component({
-  selector: 'app-mailbox-container',
-  templateUrl: './mailbox.container.html',
-  styleUrl: './mailbox.container.scss',
-  imports: [UiAccordionComponent, UiAccordionItemComponent, CommonModule]
-})
-export class MailboxContainer {
-  faEnvelopeOpen = faEnvelopeOpen;
-
-  selection = signal<{ section: boolean; mailboxId: number | null }>({ 
-    section: true, 
-    mailboxId: null 
-  });
-
-  mailboxes = toSignal(
-    this.mailboxService.mailboxes$.pipe(
-      map(sections => sections.map(s => ({
-        ...s,
-        mailboxes: s.mailboxes.map(m => ({
-          ...m,
-          initials: this.avatarUtils.getInitials(m.label)
-        }))
-      })))
-    ),
-    { initialValue: [] }
-  );
-
-  selectSection() {
-    this.selection.set({ section: true, mailboxId: null });
-    this.router.navigate(['/mailboxes']);
-  }
-
-  selectMailbox(id: number) {
-    this.selection.set({ section: false, mailboxId: id });
-    this.router.navigate(['/mailboxes', id]);
-  }
-}
-```
-
-**Template:**
+## Exemple concret (mailbox.container.html)
 
 ```html
-<ui-accordion [mode]="'single'" [variant]="'bordered'">
+<ng-template #headerTemplate let-folder="$implicit">
+  <div class="mailbox-header" [class.selected]="selection().section">
+    …
+  </div>
+</ng-template>
 
-  <!-- "Mes courriers" section with icon header -->
-  <ui-accordion-item 
-    [headerTemplate]="sectionHeader"
-    [headerContext]="{ icon: faEnvelopeOpen, title: 'Mes courriers' }"
-    [isSelected]="selection().section"
-    (openedChange)="selectSection()">
-    <p>All mailboxes section</p>
-  </ui-accordion-item>
-
-  <!-- Individual mailboxes -->
-  @for (mailbox of mailboxes()[0]?.mailboxes || []; track mailbox.id) {
-    <ui-accordion-item 
-      [headerTemplate]="mailboxHeader"
-      [headerContext]="{ mailbox }"
-      [isSelected]="selection().mailboxId === mailbox.id"
-      (openedChange)="selectMailbox(mailbox.id)">
-      <p>{{ mailbox.description }}</p>
+<ui-accordion mode="multiple">
+  @for (folder of mailboxes(); track $index) {
+    <ui-accordion-item [headerTemplate]="headerTemplate"
+                       [headerContext]="folder"
+                       [opened]="$index === 0"
+                       [isSelected]="$index === 0 && selection().section">
+      <app-mailbox-list …></app-mailbox-list>
     </ui-accordion-item>
   }
-
 </ui-accordion>
-
-<!-- Header templates -->
-<ng-template #sectionHeader let-data>
-  <fa-icon [icon]="data.icon" class="mr-3"></fa-icon>
-  <span>{{ data.title }}</span>
-</ng-template>
-
-<ng-template #mailboxHeader let-data>
-  <div class="w-8 h-8 mr-3 rounded flex items-center justify-center bg-gray-200">
-    {{ data.mailbox.initials }}
-  </div>
-  <span>{{ data.mailbox.label }}</span>
-</ng-template>
 ```
 
-**Styles (in mailbox.container.scss):**
+===
 
-```scss
-::ng-deep .ui-accordion .mat-expansion-panel-header.ui-accordion-item__header--selected {
-  background-color: $color-selection-bg-list !important;
-  border-left: 4px solid $color-primary !important;
-}
-```
-
----
-
-## Common Integration Mistakes
-
-1. **Importing from nested paths** instead of index  
-   ❌ `import { UiAccordionComponent } from '.../accordion/accordion.component'`  
-   ✅ `import { UiAccordionComponent } from 'app/shared/ui/ui-accordion'`
-
-2. **Trying to manage selection inside the item**  
-   ❌ Item tries to call `this.isSelected.set(true)`  
-   ✅ Container passes `[isSelected]="selection().something"`
-
-3. **Forgetting `::ng-deep` for header styling**  
-   Result: Your styles don't apply because Material's encapsulation wins
-
-4. **Confusing `header` and `headerTemplate`**  
-   ❌ Using both at once  
-   ✅ Use `header="text"` for simple text, OR `[headerTemplate]` for custom layouts
-
-5. **Not understanding content projection**  
-   Forgetting that everything inside `<ui-accordion-item>` is automatically projected
-
----
-
-## Checklist before shipping
-
-- [ ] Import from `app/shared/ui/ui-accordion` (not deep paths)
-- [ ] Add components to `imports` array
-- [ ] Selection state managed in container (not item)
-- [ ] Custom headers use `ng-template` + `let-data`
-- [ ] Styling uses `::ng-deep` + `!important` for Material headers
-- [ ] Content projected correctly inside `<ui-accordion-item>` tags
-- [ ] Using `[isSelected]` binding to control header styles
-
----
-
-See `features/mailboxes/containers/mailbox/mailbox.container.ts` for the full working example.
+Garde ce guide sous la main : il explique l’architecture, les inputs/outputs et la personnalisation de l’en‑tête/du contenu en français comme demandé.
