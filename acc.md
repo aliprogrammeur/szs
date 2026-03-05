@@ -53,7 +53,7 @@ import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui
 ```
 2. Ajouter ces deux composants à l’array `imports` du composant conteneur.
 3. Gérer l’état de sélection **dans le conteneur** (signal, store, route, etc.).
-4. Lien HTML de base :
+4. HTML:
 ```html
 <ui-accordion [mode]="'single'" [variant]="'bordered'">
   <ui-accordion-item [headerTemplate]="basicHeader" [headerContext]="{label:'Titre'}" [isSelected]="selection().section">
@@ -61,7 +61,7 @@ import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui
   </ui-accordion-item>
 </ui-accordion>
 ```
-5. Le `headerTemplate` est obligatoire ; il n’existe plus de propriété `header` simple. Exemple minimal :
+5. Le `headerTemplate`exemple minimal :
 ```html
 <ng-template #basicHeader let-data>
   {{data.label}}
@@ -87,25 +87,16 @@ Pour personnaliser davantage :
 Quand `isSelected` est vrai, la classe `.ui-accordion-item__header--selected` est ajoutée.
 Pour la modifier :
 ```scss
-::ng-deep .ui-accordion .mat-expansion-panel-header
+.ui-accordion .mat-expansion-panel-header
       .ui-accordion-item__header--selected {
   background-color: $color-selection-bg-list !important;
 }
 ```
-`::ng-deep` est nécessaire pour traverser l’encapsulation de Material.
 
 ## Modes
 
 - `mode="single"` : un seul item ouvert à la fois (ouverture ferme les autres).
 - `mode="multiple"` : les items s’ouvrent/ferment indépendamment.
-
-## Erreurs fréquentes
-
-- Importer depuis `.../accordion/accordion.component.ts` au lieu de l’index.
-- Tenter de modifier `isSelected` à l’intérieur de l’item.
-- Oublier `::ng-deep` pour les styles.
-- Tenter de passer `header` (il a été supprimé) ; utilisez `headerTemplate`.
-- Ne pas ajouter les composants dans `imports` → « élément inconnu ».
 
 ## Exemple concret (mailbox.container.html)
 
