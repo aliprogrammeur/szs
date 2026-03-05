@@ -38,7 +38,6 @@ Exemple :
 
 | Input | Type | Usage | Exemple |
 |-------|------|-------|---------|
-| `header` | string | en‑tête simple | `header="Documents"` |
 | `headerTemplate` | TemplateRef | template personnalisé | `[headerTemplate]="tpl"` |
 | `headerContext` | any | contexte passé au template | `[headerContext]="{name:'foo'}"` |
 | `isSelected` | bool | ajoute classe `.ui-accordion-item__header--selected` | `[isSelected]="true"` |
@@ -60,12 +59,19 @@ import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui
 4. Lien HTML de base :
 ```html
 <ui-accordion [mode]="'single'" [variant]="'bordered'">
-  <ui-accordion-item header="Titre" [isSelected]="selection().section">
+  <ui-accordion-item [headerTemplate]="basicHeader" [headerContext]="{label:'Titre'}" [isSelected]="selection().section">
     Contenu projeté
   </ui-accordion-item>
 </ui-accordion>
 ```
-5. Pour un en‑tête personnalisé utilisez `headerTemplate` / `headerContext` :
+5. Le `headerTemplate` est obligatoire ; il n’existe plus de propriété `header` simple. Exemple minimal :
+```html
+<ng-template #basicHeader let-data>
+  {{data.label}}
+</ng-template>
+```
+
+Pour personnaliser davantage :
 ```html
 <ui-accordion-item
   [headerTemplate]="monHeader"
@@ -101,7 +107,7 @@ Pour la modifier :
 - Importer depuis `.../accordion/accordion.component.ts` au lieu de l’index.
 - Tenter de modifier `isSelected` à l’intérieur de l’item.
 - Oublier `::ng-deep` pour les styles.
-- Mélanger `header` et `headerTemplate`.
+- Tenter de passer `header` (il a été supprimé) ; utilisez `headerTemplate`.
 - Ne pas ajouter les composants dans `imports` → « élément inconnu ».
 
 ## Exemple concret (mailbox.container.html)
