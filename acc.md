@@ -1,8 +1,35 @@
 # Accordion Integration Guide
 
-This short guide explains how to properly include the shared `ui-accordion` component in a new feature. Follow the steps below and refer to the full `DOCUMENTATION.md` for deeper understanding.
+## Architecture Overview
 
-## 1. Importing
+The `ui-accordion` is a **wrapper around Angular Material's MatExpansionPanel**, not a custom component from scratch. This hybrid approach gives us:
+
+- **Robustness**: A11y, keyboard nav, animations all handled by Material  
+- **Stability**: Maintained by Google, battle-tested across projects  
+- **Flexibility**: Our wrapper layer (inputs like `mode`, `variant`) keeps the interface simple while Material handles complexity underneath  
+- **Isolation**: Every feature that wants to use accordion customizes it through our wrapper, never directly touching Material
+
+### Component Structure
+
+```
+UiAccordionComponent (Container wrapper)
+    ↓
+    @ContentChildren → detects all UiAccordionItemComponent children
+    ↓
+    Enforces "single" vs "multiple" mode
+    ↓
+    UiAccordionItemComponent (Item wrapper)
+        ↓
+        MatExpansionPanel (Material – handles animations, a11y, state)
+```
+
+Each `UiAccordionItemComponent` sits on top of `MatExpansionPanel`, adding a thin layer for theming and selection tracking.
+
+---
+
+## Integration Steps
+
+### 1. Importing from the public index
 
 Always import from the public index so consumers don’t have to know internal paths:
 
@@ -12,7 +39,9 @@ import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui
 
 Place these components in the `imports` array of any standalone component or NgModule that will use the accordion.
 
-## 2. Basic usage
+**Why**: The index is the public API contract. If internals move (accordion/ vs accordion-item/), only the index changes, not your code.
+
+### 2. Basic HTML structure
 
 ```html
 <ui-accordion [mode]="'single'" [variant]="'bordered'">
