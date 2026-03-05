@@ -1,6 +1,6 @@
 # Guide d’intégration de l’accordeon
 
-Ce document explique comment utiliser correctement le composant `ui-accordion` partagé dans un futur feature. Il décrit l’architecture, les entrées / sorties de chaque composant, et montre comment personnaliser en particulier l’en‑tête et le contenu.
+Ce document explique comment utiliser correctement le composant `ui-accordion` partagé dans un futur feature. Il décrit l’architecture, les entrées / sorties de chaque composant, et montre comment personnaliser en particulier l’en‑tête et le contenu de l'accordeon.
 
 ## Architecture générale
 
@@ -15,9 +15,6 @@ UiAccordionItemComponent (wrappe MatExpansionPanel)
     ↓
     MatExpansionPanel (gestion d’animations, accessibilité, état)
 ```
-
-- `UiAccordionComponent` dispose les items et impose le comportement `single/multiple`.
-- `UiAccordionItemComponent` fournit une interface plus simple et des entrées pour la sélection, le template d’en‑tête, etc.
 
 ## Entrées de `UiAccordionComponent`
 
@@ -45,8 +42,8 @@ Exemple :
 | `opened` | bool | item ouvert au départ | `[opened]="true"` |
 | `ariaLabel` | string/null | label pour lecteur d’écran | `[ariaLabel]="'Mon panneau'"` |
 
-⚠️ **Output** :
-`(openedChange)` émet `'expanded'` ou `'collapsed'` quand l’usager ouvre/ferme.
+**Output** :
+`(openedChange)` émet `'expanded'` ou `'collapsed'` quand ouvre/ferme.
 
 ## Étapes d’intégration
 
