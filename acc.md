@@ -67,19 +67,6 @@ import { UiAccordionComponent, UiAccordionItemComponent } from 'app/shared/ui/ui
   {{data.label}}
 </ng-template>
 ```
-
-Pour personnaliser davantage :
-```html
-<ui-accordion-item
-  [headerTemplate]="monHeader"
-  [headerContext]="{label:'Mes courriers'}">
-  …
-</ui-accordion-item>
-
-<ng-template #monHeader let-data>
-  <span>{{data.label}}</span>
-</ng-template>
-```
 6. Le contenu placé entre les balises `<ui-accordion-item>` est automatiquement projeté (`<ng-content>`).
 
 ## Styliser l’en‑tête sélectionné
